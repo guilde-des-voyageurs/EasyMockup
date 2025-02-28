@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { modelesService, type Couleur } from '@/services/modeles';
 import { supabase } from '@/lib/supabase';
@@ -28,14 +28,49 @@ export default function ModeleEditModal({
   onSuccess?: () => void;
   modeleInitial?: { id: string; nom: string; couleurs: Couleur[] };
 }) {
-  const [nom, setNom] = useState(modeleInitial?.nom || '');
-  const [couleurs, setCouleurs] = useState<TempCouleur[]>(modeleInitial?.couleurs || []);
+  // Log initial props
+  console.log('ModeleEditModal - Props reçues:', { isOpen, modeleInitial });
+
+  const [nom, setNom] = useState('');
+  const [couleurs, setCouleurs] = useState<TempCouleur[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showAddColor, setShowAddColor] = useState(false);
   const [newColorName, setNewColorName] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [editingCouleur, setEditingCouleur] = useState<EditingCouleur | null>(null);
+
+  // Réinitialiser les états quand la modal s'ouvre ou que modeleInitial change
+  useEffect(() => {
+    if (isOpen) {
+      console.log('ModeleEditModal - Initialisation avec:', modeleInitial);
+      if (modeleInitial) {
+        setNom(modeleInitial.nom);
+        setCouleurs(modeleInitial.couleurs.map(c => ({
+          ...c,
+          tempFile: undefined
+        })));
+      } else {
+        setNom('');
+        setCouleurs([]);
+      }
+      setError(null);
+      setShowAddColor(false);
+      setNewColorName('');
+      setSelectedFile(null);
+      setEditingCouleur(null);
+    }
+  }, [isOpen, modeleInitial]);
+
+  // Log des changements d'état
+  useEffect(() => {
+    console.log('ModeleEditModal - État actuel:', {
+      nom,
+      couleurs,
+      showAddColor,
+      editingCouleur
+    });
+  }, [nom, couleurs, showAddColor, editingCouleur]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) {

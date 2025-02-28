@@ -26,6 +26,7 @@ export interface Modele {
 export const modelesService = {
   // Récupérer tous les modèles avec leurs couleurs et éléments
   async getAllModeles(): Promise<Modele[]> {
+    console.log('Récupération des modèles...');
     const { data, error } = await supabase
       .from('modeles')
       .select(`
@@ -45,24 +46,35 @@ export const modelesService = {
         )
       `);
 
-    if (error) throw error;
+    if (error) {
+      console.error('Erreur lors de la récupération des modèles:', error);
+      throw error;
+    }
 
-    return data.map(modele => ({
-      id: modele.id,
-      nom: modele.nom,
-      couleurs: modele.couleurs.map((c: any) => ({
-        id: c.id,
-        nom: c.nom,
-        imageUrl: c.image_url
-      })),
-      elementsSuperposables: modele.elements_superposables.map((e: any) => ({
-        id: e.id,
-        nom: e.nom,
-        imageUrl: e.image_url,
-        positionX: e.position_x,
-        positionY: e.position_y
-      }))
-    }));
+    console.log('Données brutes:', data);
+
+    const modeles = data.map(modele => {
+      const transformed = {
+        id: modele.id,
+        nom: modele.nom,
+        couleurs: Array.isArray(modele.couleurs) ? modele.couleurs.map((c: any) => ({
+          id: c.id,
+          nom: c.nom,
+          imageUrl: c.image_url
+        })) : [],
+        elementsSuperposables: Array.isArray(modele.elements_superposables) ? modele.elements_superposables.map((e: any) => ({
+          id: e.id,
+          nom: e.nom,
+          imageUrl: e.image_url,
+          positionX: e.position_x,
+          positionY: e.position_y
+        })) : []
+      };
+      console.log('Modèle transformé:', transformed);
+      return transformed;
+    });
+
+    return modeles;
   },
 
   // Créer un nouveau modèle
