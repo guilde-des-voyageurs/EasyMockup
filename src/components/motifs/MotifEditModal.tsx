@@ -49,17 +49,15 @@ export default function MotifEditModal({ isOpen, onClose, onSuccess, motifInitia
   };
 
   const ajouterAssociation = (varianteId: string, modele: string, couleur: string) => {
-    // Trouver la variante actuelle
-    const variante = variantes.find(v => v.id === varianteId);
-    if (!variante) return;
-
-    // Vérifier si l'association existe déjà
-    const associationExiste = variante.associations.some(
-      assoc => assoc.modele === modele && assoc.couleur === couleur
+    // Vérifier si l'association existe déjà dans n'importe quelle variante du motif
+    const associationExisteDansAutreVariante = variantes.some(variante => 
+      variante.associations.some(
+        assoc => assoc.modele === modele && assoc.couleur === couleur
+      )
     );
 
-    if (associationExiste) {
-      setError(`L'association "${modele} - ${couleur}" existe déjà pour cette variante`);
+    if (associationExisteDansAutreVariante) {
+      setError(`L'association "${modele} - ${couleur}" existe déjà dans une autre variante de ce motif`);
       return;
     }
 
