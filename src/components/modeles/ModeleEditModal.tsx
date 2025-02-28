@@ -39,6 +39,15 @@ export default function ModeleEditModal({ isOpen, onClose, onSuccess, modeleInit
       let modeleId = modeleInitial?.id;
       if (!modeleId) {
         modeleId = await modelesService.createModele(nom);
+        
+        // 2. Ajouter toutes les couleurs pour un nouveau modèle
+        for (const couleur of couleurs) {
+          await modelesService.addCouleur(
+            modeleId,
+            couleur.nom,
+            couleur.codeHex
+          );
+        }
       } else {
         await modelesService.updateModele(modeleId, nom);
       }
@@ -76,14 +85,12 @@ export default function ModeleEditModal({ isOpen, onClose, onSuccess, modeleInit
         ]);
       } else {
         // Pour un nouveau modèle, on stocke temporairement
-        setCouleurs([
-          ...couleurs,
-          { 
-            id: generateTempId('couleur'),
-            nom: newColorName,
-            codeHex: newColorHex
-          }
-        ]);
+        const newCouleur = { 
+          id: generateTempId('couleur'),
+          nom: newColorName,
+          codeHex: newColorHex
+        };
+        setCouleurs([...couleurs, newCouleur]);
       }
 
       // Réinitialiser le formulaire
@@ -146,7 +153,7 @@ export default function ModeleEditModal({ isOpen, onClose, onSuccess, modeleInit
         {/* Couleurs */}
         <div className="mb-6">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="font-medium">Bases Textiles</h3>
+            <h3 className="font-medium">Couleur</h3>
             <button
               onClick={() => setShowColorPicker(true)}
               className="text-sm text-blue-500 hover:text-blue-600"
@@ -162,7 +169,7 @@ export default function ModeleEditModal({ isOpen, onClose, onSuccess, modeleInit
                 <div className="flex justify-between items-center">
                   <div>
                     <h4 className="font-medium">{couleur.nom}</h4>
-                    <p className="text-sm text-gray-600">Base textile</p>
+                    <p className="text-sm text-gray-600">Couleur</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <div 
@@ -186,7 +193,7 @@ export default function ModeleEditModal({ isOpen, onClose, onSuccess, modeleInit
           {/* Formulaire d'ajout de couleur */}
           {showColorPicker && (
             <div className="bg-gray-50 p-4 rounded mb-4">
-              <h4 className="font-medium mb-3">Nouvelle Base Textile</h4>
+              <h4 className="font-medium mb-3">Nouvelle couleur</h4>
               <div className="space-y-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">

@@ -103,14 +103,14 @@ export default function ModelesPage() {
 
             {/* Bases textiles */}
             <div className="mb-6">
-              <h3 className="font-medium mb-3">Bases Textiles</h3>
+              <h3 className="font-medium mb-3">Couleur</h3>
               <div className="grid grid-cols-2 gap-3">
                 {modele.couleurs.map(couleur => (
                   <div key={couleur.id} className="bg-gray-50 p-3 rounded">
                     <div className="flex justify-between items-center">
                       <div>
                         <h4 className="font-medium">{couleur.nom}</h4>
-                        <p className="text-sm text-gray-600">Base textile</p>
+                        <p className="text-sm text-gray-600">Couleur</p>
                       </div>
                       <div 
                         className="w-12 h-12 rounded" 
@@ -153,7 +153,7 @@ export default function ModelesPage() {
             {/* Actions */}
             <div className="mt-4 pt-4 border-t flex gap-2">
               <button className="text-sm text-blue-500 hover:text-blue-600">
-                + Ajouter une base textile
+                + Ajouter une couleur
               </button>
               <button className="text-sm text-blue-500 hover:text-blue-600 ml-4">
                 + Ajouter un élément superposable
