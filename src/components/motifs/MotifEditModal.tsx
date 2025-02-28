@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import Modal from '../Modal';
 import ImageUpload from '../ImageUpload';
 import AssociationSelector from './AssociationSelector';
-import { motifsService, type Motif, type Variante } from '@/services/motifs'; 
+import { motifsService, type Motif, type Variante } from '@/services/motifs';
+import { generateTempId } from '@/utils/ids';
 
 interface MotifEditModalProps {
   isOpen: boolean;
@@ -29,7 +30,7 @@ export default function MotifEditModal({ isOpen, onClose, onSuccess, motifInitia
 
   const ajouterVariante = () => {
     const nouvelleVariante: Variante = {
-      id: `temp-${Date.now()}`,
+      id: generateTempId('variante'),
       nom: `Variante ${variantes.length + 1}`,
       associations: []
     };
@@ -68,7 +69,7 @@ export default function MotifEditModal({ isOpen, onClose, onSuccess, motifInitia
             ...v,
             associations: [
               ...v.associations,
-              { id: `temp-${Date.now()}`, modele, couleur }
+              { id: generateTempId('assoc'), modele, couleur }
             ]
           }
         : v
