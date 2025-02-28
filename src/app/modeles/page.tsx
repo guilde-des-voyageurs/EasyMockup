@@ -10,6 +10,7 @@ export default function ModelesPage() {
   const [error, setError] = useState<string | null>(null);
   const [modeleEnEdition, setModeleEnEdition] = useState<Modele | null>(null);
   const [showNewModeleModal, setShowNewModeleModal] = useState(false);
+  const [modeleASupprimer, setModeleASupprimer] = useState<Modele | null>(null);
 
   useEffect(() => {
     loadModeles();
@@ -24,6 +25,24 @@ export default function ModelesPage() {
     } catch (err) {
       console.error('Error loading modeles:', err);
       setError(err instanceof Error ? err.message : 'Une erreur est survenue');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteModele = async (modele: Modele) => {
+    if (!confirm(`Êtes-vous sûr de vouloir supprimer le modèle "${modele.nom}" ? Cette action est irréversible.`)) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      await modelesService.deleteModele(modele.id);
+      await loadModeles();
+    } catch (err) {
+      console.error('Error deleting modele:', err);
+      setError(err instanceof Error ? err.message : 'Une erreur est survenue lors de la suppression');
     } finally {
       setLoading(false);
     }
@@ -66,12 +85,20 @@ export default function ModelesPage() {
                   {modele.couleurs.length} bases textiles • {modele.elementsSuperposables.length} éléments superposables
                 </p>
               </div>
-              <button 
-                onClick={() => setModeleEnEdition(modele)}
-                className="text-blue-500 hover:text-blue-600"
-              >
-                Éditer
-              </button>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => setModeleEnEdition(modele)}
+                  className="text-blue-500 hover:text-blue-600"
+                >
+                  Éditer
+                </button>
+                <button 
+                  onClick={() => handleDeleteModele(modele)}
+                  className="text-red-500 hover:text-red-600"
+                >
+                  Supprimer
+                </button>
+              </div>
             </div>
 
             {/* Bases textiles */}
