@@ -1,25 +1,32 @@
 'use client';
 
-import { useState } from 'react';
-import MotifEditModal from '@/components/motifs/MotifEditModal';
-
-interface Motif {
-  id: string;
-  nom: string;
-  variantes: {
-    id: string;
-    nom: string;
-    imageUrl?: string;
-    associations: {
-      modele: string;
-      couleur: string;
-    }[];
-  }[];
-}
+import { useState, useEffect } from 'react';
+import MotifEditModal from '../../components/motifs/MotifEditModal';
+import { motifsService, type Motif } from '../../services/motifs';
 
 export default function MotifsPage() {
   const [modalOuvert, setModalOuvert] = useState(false);
   const [motifEnEdition, setMotifEnEdition] = useState<Motif | undefined>();
+  const [motifs, setMotifs] = useState<Motif[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const chargerMotifs = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await motifsService.getAllMotifs();
+      setMotifs(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur lors du chargement des motifs');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    chargerMotifs();
+  }, []);
 
   const ouvrirNouveauMotif = () => {
     setMotifEnEdition(undefined);
@@ -31,21 +38,23 @@ export default function MotifsPage() {
     setModalOuvert(true);
   };
 
-  // Exemple de motif pour démonstration
-  const motifExemple: Motif = {
-    id: '1',
-    nom: 'AVALON',
-    variantes: [
-      {
-        id: '1',
-        nom: 'Version Noire',
-        associations: [
-          { modele: 'Creator', couleur: 'Bordeaux' },
-          { modele: 'Urban', couleur: 'Gris' }
-        ]
-      }
-    ]
-  };
+  if (loading) {
+    return (
+      <div className="p-6 flex justify-center items-center">
+        <div className="text-gray-600">Chargement des motifs...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="bg-red-50 text-red-600 p-4 rounded-lg">
+          {error}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
@@ -61,58 +70,60 @@ export default function MotifsPage() {
 
       {/* Liste des motifs */}
       <div className="grid grid-cols-1 gap-6">
-        <div className="bg-white rounded-lg border p-4">
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <h2 className="text-xl font-semibold">{motifExemple.nom}</h2>
-              <p className="text-gray-600">{motifExemple.variantes.length} variantes</p>
-            </div>
-            <button 
-              onClick={() => ouvrirEditionMotif(motifExemple)}
-              className="text-blue-500 hover:text-blue-600"
-            >
-              Éditer
-            </button>
-          </div>
-
-          {/* Variantes */}
-          <div className="space-y-3">
-            {motifExemple.variantes.map((variante) => (
-              <div key={variante.id} className="bg-gray-50 p-3 rounded">
-                <div className="flex justify-between items-center mb-3">
-                  <div>
-                    <h3 className="font-medium">{variante.nom}</h3>
-                  </div>
-                  <div className="w-16 h-16 bg-gray-200 rounded">
-                    {variante.imageUrl && (
-                      <img 
-                        src={variante.imageUrl} 
-                        alt={variante.nom}
-                        className="w-full h-full object-cover rounded"
-                      />
-                    )}
-                  </div>
-                </div>
-
-                {/* Associations */}
-                <div className="mt-3 space-y-2">
-                  <h4 className="text-sm font-medium text-gray-600">S'applique sur :</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {variante.associations.map((assoc, idx) => (
-                      <div key={idx} className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded flex items-center">
-                        <span>{assoc.modele} - {assoc.couleur}</span>
-                        <button className="ml-2 text-blue-500 hover:text-blue-700">×</button>
-                      </div>
-                    ))}
-                    <button className="text-xs text-blue-500 hover:text-blue-700 px-2 py-1 rounded border border-blue-200 hover:border-blue-300">
-                      + Ajouter une association
-                    </button>
-                  </div>
-                </div>
+        {motifs.map((motif) => (
+          <div key={motif.id} className="bg-white rounded-lg border p-4">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h2 className="text-xl font-semibold">{motif.nom}</h2>
+                <p className="text-gray-600">{motif.variantes.length} variantes</p>
               </div>
-            ))}
+              <button 
+                onClick={() => ouvrirEditionMotif(motif)}
+                className="text-blue-500 hover:text-blue-600"
+              >
+                Éditer
+              </button>
+            </div>
+
+            {/* Variantes */}
+            <div className="space-y-3">
+              {motif.variantes.map((variante) => (
+                <div key={variante.id} className="bg-gray-50 p-3 rounded">
+                  <div className="flex justify-between items-center mb-3">
+                    <div>
+                      <h3 className="font-medium">{variante.nom}</h3>
+                    </div>
+                    <div className="w-16 h-16 bg-gray-200 rounded">
+                      {variante.imageUrl && (
+                        <img 
+                          src={variante.imageUrl} 
+                          alt={variante.nom}
+                          className="w-full h-full object-cover rounded"
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Associations */}
+                  <div className="mt-3 space-y-2">
+                    <h4 className="text-sm font-medium text-gray-600">S'applique sur :</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {variante.associations.map((assoc, idx) => (
+                        <div key={idx} className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded flex items-center">
+                          <span>{assoc.modele} - {assoc.couleur}</span>
+                          <button className="ml-2 text-blue-500 hover:text-blue-700">×</button>
+                        </div>
+                      ))}
+                      <button className="text-xs text-blue-500 hover:text-blue-700 px-2 py-1 rounded border border-blue-200 hover:border-blue-300">
+                        + Ajouter une association
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        ))}
       </div>
 
       {/* Modal d'édition */}
@@ -120,6 +131,7 @@ export default function MotifsPage() {
         isOpen={modalOuvert}
         onClose={() => setModalOuvert(false)}
         motifInitial={motifEnEdition}
+        onSuccess={chargerMotifs}
       />
     </div>
   );

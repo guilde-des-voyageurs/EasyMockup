@@ -3,35 +3,24 @@
 import { useState } from 'react';
 import Modal from '../Modal';
 import ImageUpload from '../ImageUpload';
-
-interface Variante {
-  id: string;
-  nom: string;
-  imageUrl?: string;
-  file?: File;  // Ajout du champ pour stocker le fichier
-  associations: {
-    modele: string;
-    couleur: string;
-  }[];
-}
+import { motifsService, type Motif, type Variante } from '@/services/motifs'; 
 
 interface MotifEditModalProps {
   isOpen: boolean;
   onClose: () => void;
-  motifInitial?: {
-    id?: string;
-    nom: string;
-    variantes: Variante[];
-  };
+  onSuccess?: () => void;
+  motifInitial?: Motif;
 }
 
-export default function MotifEditModal({ isOpen, onClose, motifInitial }: MotifEditModalProps) {
+export default function MotifEditModal({ isOpen, onClose, onSuccess, motifInitial }: MotifEditModalProps) {
   const [nom, setNom] = useState(motifInitial?.nom || '');
   const [variantes, setVariantes] = useState<Variante[]>(motifInitial?.variantes || []);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   const ajouterVariante = () => {
     const nouvelleVariante: Variante = {
-      id: Date.now().toString(),
+      id: `temp-${Date.now()}`, // ID temporaire
       nom: `Variante ${variantes.length + 1}`,
       associations: []
     };
@@ -52,9 +41,48 @@ export default function MotifEditModal({ isOpen, onClose, motifInitial }: MotifE
     setVariantes(newVariantes);
   };
 
+  const handleSubmit = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // 1. Créer ou mettre à jour le motif
+      let motifId = motifInitial?.id;
+      if (!motifId) {
+        motifId = await motifsService.createMotif(nom);
+      }
+
+      // 2. Pour chaque variante
+      for (const variante of variantes) {
+        // Si la variante a un fichier, on l'upload
+        if (variante.file) {
+          await motifsService.addVariante(motifId, variante.nom, variante.file);
+        }
+
+        // Pour chaque association de la variante
+        for (const assoc of variante.associations) {
+          await motifsService.addAssociation(variante.id, assoc.modele, assoc.couleur);
+        }
+      }
+
+      onSuccess?.();
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Une erreur est survenue');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={motifInitial ? 'Éditer le Motif' : 'Nouveau Motif'}>
       <div className="space-y-6">
+        {error && (
+          <div className="bg-red-50 text-red-600 p-3 rounded">
+            {error}
+          </div>
+        )}
+
         {/* Nom du motif */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -76,6 +104,7 @@ export default function MotifEditModal({ isOpen, onClose, motifInitial }: MotifE
             <button
               onClick={ajouterVariante}
               className="text-sm bg-blue-500 text-white px-3 py-1 rounded-lg hover:bg-blue-600"
+              disabled={loading}
             >
               + Ajouter une variante
             </button>
@@ -96,16 +125,18 @@ export default function MotifEditModal({ isOpen, onClose, motifInitial }: MotifE
                     }}
                     className="px-2 py-1 border rounded"
                     placeholder="Nom de la variante"
+                    disabled={loading}
                   />
                   <button
                     onClick={() => supprimerVariante(variante.id)}
                     className="text-red-500 hover:text-red-700"
+                    disabled={loading}
                   >
                     Supprimer
                   </button>
                 </div>
 
-                {/* Upload d'image avec le nouveau composant */}
+                {/* Upload d'image */}
                 <div className="mb-3">
                   <ImageUpload
                     imageUrl={variante.imageUrl}
@@ -129,12 +160,16 @@ export default function MotifEditModal({ isOpen, onClose, motifInitial }: MotifE
                             setVariantes(newVariantes);
                           }}
                           className="ml-2 text-blue-500 hover:text-blue-700"
+                          disabled={loading}
                         >
                           ×
                         </button>
                       </div>
                     ))}
-                    <button className="text-sm text-blue-500 hover:text-blue-700 px-2 py-1 rounded border border-blue-200 hover:border-blue-300">
+                    <button 
+                      className="text-sm text-blue-500 hover:text-blue-700 px-2 py-1 rounded border border-blue-200 hover:border-blue-300"
+                      disabled={loading}
+                    >
                       + Ajouter
                     </button>
                   </div>
@@ -149,17 +184,18 @@ export default function MotifEditModal({ isOpen, onClose, motifInitial }: MotifE
           <button
             onClick={onClose}
             className="px-4 py-2 text-gray-700 hover:text-gray-900"
+            disabled={loading}
           >
             Annuler
           </button>
           <button
-            onClick={() => {
-              // TODO: Sauvegarder les modifications
-              onClose();
-            }}
-            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+            onClick={handleSubmit}
+            disabled={loading}
+            className={`px-4 py-2 bg-blue-500 text-white rounded-lg ${
+              loading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-600'
+            }`}
           >
-            Enregistrer
+            {loading ? 'Enregistrement...' : 'Enregistrer'}
           </button>
         </div>
       </div>
