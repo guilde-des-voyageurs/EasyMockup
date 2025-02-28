@@ -13,7 +13,7 @@ export interface ElementSuperposable {
 export interface Couleur {
   id: string;
   nom: string;
-  codeHex: string;
+  imageUrl: string;
 }
 
 export interface Modele {
@@ -34,7 +34,7 @@ export const modelesService = {
         couleurs (
           id,
           nom,
-          code_hex
+          image_url
         ),
         elements_superposables (
           id,
@@ -53,7 +53,7 @@ export const modelesService = {
       couleurs: modele.couleurs.map((c: any) => ({
         id: c.id,
         nom: c.nom,
-        codeHex: c.code_hex
+        imageUrl: c.image_url
       })),
       elementsSuperposables: modele.elements_superposables.map((e: any) => ({
         id: e.id,
@@ -98,19 +98,38 @@ export const modelesService = {
   },
 
   // Ajouter une couleur à un modèle
-  async addCouleur(modeleId: string, nom: string, codeHex: string): Promise<string> {
-    const { data, error } = await supabase
-      .from('couleurs')
-      .insert({
-        modele_id: modeleId,
-        nom,
-        code_hex: codeHex
-      })
-      .select('id')
-      .single();
+  async addCouleur(modeleId: string, nom: string, imageFile: File): Promise<string> {
+    try {
+      // 1. Upload de l'image
+      const fileName = `${Date.now()}-${imageFile.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from('bases-textiles')
+        .upload(fileName, imageFile);
 
-    if (error) throw error;
-    return data.id;
+      if (uploadError) throw uploadError;
+
+      // 2. Obtenir l'URL publique
+      const { data: { publicUrl } } = supabase.storage
+        .from('bases-textiles')
+        .getPublicUrl(fileName);
+
+      // 3. Créer l'entrée dans la base de données
+      const { data, error } = await supabase
+        .from('couleurs')
+        .insert({
+          modele_id: modeleId,
+          nom,
+          image_url: publicUrl
+        })
+        .select('id')
+        .single();
+
+      if (error) throw error;
+      return data.id;
+    } catch (error) {
+      console.error('Error in addCouleur:', error);
+      throw error;
+    }
   },
 
   // Supprimer une couleur

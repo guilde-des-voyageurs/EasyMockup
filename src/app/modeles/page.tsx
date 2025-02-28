@@ -112,9 +112,10 @@ export default function ModelesPage() {
                         <h4 className="font-medium">{couleur.nom}</h4>
                         <p className="text-sm text-gray-600">Couleur</p>
                       </div>
-                      <div 
-                        className="w-12 h-12 rounded" 
-                        style={{ backgroundColor: couleur.codeHex }}
+                      <img 
+                        src={couleur.imageUrl}
+                        alt={couleur.nom}
+                        className="w-12 h-12 object-cover rounded"
                       />
                     </div>
                   </div>
