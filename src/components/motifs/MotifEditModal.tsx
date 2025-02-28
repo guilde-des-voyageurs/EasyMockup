@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Modal from '../Modal';
 import ImageUpload from '../ImageUpload';
+import AssociationSelector from './AssociationSelector';
 import { motifsService, type Motif, type Variante } from '@/services/motifs'; 
 
 interface MotifEditModalProps {
@@ -17,10 +18,11 @@ export default function MotifEditModal({ isOpen, onClose, onSuccess, motifInitia
   const [variantes, setVariantes] = useState<Variante[]>(motifInitial?.variantes || []);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+  const [varianteEnEdition, setVarianteEnEdition] = useState<string | null>(null);
+
   const ajouterVariante = () => {
     const nouvelleVariante: Variante = {
-      id: `temp-${Date.now()}`, // ID temporaire
+      id: `temp-${Date.now()}`,
       nom: `Variante ${variantes.length + 1}`,
       associations: []
     };
@@ -32,13 +34,27 @@ export default function MotifEditModal({ isOpen, onClose, onSuccess, motifInitia
   };
 
   const handleImageChange = (varianteId: string, file: File) => {
-    // Créer une URL temporaire pour la prévisualisation
     const imageUrl = URL.createObjectURL(file);
-    
     const newVariantes = variantes.map(v =>
       v.id === varianteId ? { ...v, imageUrl, file } : v
     );
     setVariantes(newVariantes);
+  };
+
+  const ajouterAssociation = (varianteId: string, modele: string, couleur: string) => {
+    const newVariantes = variantes.map(v =>
+      v.id === varianteId
+        ? {
+            ...v,
+            associations: [
+              ...v.associations,
+              { id: `temp-${Date.now()}`, modele, couleur }
+            ]
+          }
+        : v
+    );
+    setVariantes(newVariantes);
+    setVarianteEnEdition(null);
   };
 
   const handleSubmit = async () => {
@@ -54,20 +70,28 @@ export default function MotifEditModal({ isOpen, onClose, onSuccess, motifInitia
 
       // 2. Pour chaque variante
       for (const variante of variantes) {
-        // Si la variante a un fichier, on l'upload
-        if (variante.file) {
-          await motifsService.addVariante(motifId, variante.nom, variante.file);
+        let varianteId = variante.id;
+        
+        // Si c'est une nouvelle variante (ID temporaire)
+        if (varianteId.startsWith('temp-')) {
+          // Upload de l'image si présente
+          if (variante.file) {
+            varianteId = await motifsService.addVariante(motifId, variante.nom, variante.file);
+          }
         }
 
         // Pour chaque association de la variante
         for (const assoc of variante.associations) {
-          await motifsService.addAssociation(variante.id, assoc.modele, assoc.couleur);
+          if (assoc.id.startsWith('temp-')) {
+            await motifsService.addAssociation(varianteId, assoc.modele, assoc.couleur);
+          }
         }
       }
 
       onSuccess?.();
       onClose();
     } catch (err) {
+      console.error('Error submitting:', err);
       setError(err instanceof Error ? err.message : 'Une erreur est survenue');
     } finally {
       setLoading(false);
@@ -166,12 +190,21 @@ export default function MotifEditModal({ isOpen, onClose, onSuccess, motifInitia
                         </button>
                       </div>
                     ))}
-                    <button 
-                      className="text-sm text-blue-500 hover:text-blue-700 px-2 py-1 rounded border border-blue-200 hover:border-blue-300"
-                      disabled={loading}
-                    >
-                      + Ajouter
-                    </button>
+                    <div className="relative">
+                      <button 
+                        className="text-sm text-blue-500 hover:text-blue-700 px-2 py-1 rounded border border-blue-200 hover:border-blue-300"
+                        onClick={() => setVarianteEnEdition(variante.id)}
+                        disabled={loading}
+                      >
+                        + Ajouter
+                      </button>
+                      {varianteEnEdition === variante.id && (
+                        <AssociationSelector
+                          onAdd={(modele, couleur) => ajouterAssociation(variante.id, modele, couleur)}
+                          onCancel={() => setVarianteEnEdition(null)}
+                        />
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
