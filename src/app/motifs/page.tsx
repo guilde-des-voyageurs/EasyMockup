@@ -22,35 +22,38 @@ export default function MotifsPage() {
               </button>
             </div>
   
-            {/* Variantes */}
-            <div className="space-y-3">
-              <div className="bg-gray-50 p-3 rounded">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h3 className="font-medium">Version Noire</h3>
-                    <p className="text-sm text-gray-600">
-                      Utilisé sur : Creator (Bordeaux), Urban (Gris)
-                    </p>
-                  </div>
-                  <div className="w-16 h-16 bg-gray-200 rounded">
-                    {/* Preview de l'image */}
-                  </div>
+{/* Variantes */}
+<div className="space-y-3">
+  <div className="bg-gray-50 p-3 rounded">
+    <div className="flex justify-between items-center mb-3">
+      <div>
+        <h3 className="font-medium">Version Noire</h3>
+      </div>
+      <div className="w-16 h-16 bg-gray-200 rounded">
+        {/* Preview de l'image */}
+      </div>
+    </div>
+    
+                {/* Associations avec les modèles */}
+                <div className="mt-3 space-y-2">
+                <h4 className="text-sm font-medium text-gray-600">S'applique sur :</h4>
+                <div className="flex flex-wrap gap-2">
+                    <div className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded flex items-center">
+                    <span>Creator - Bordeaux</span>
+                    <button className="ml-2 text-blue-500 hover:text-blue-700">×</button>
+                    </div>
+                    <div className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded flex items-center">
+                    <span>Urban - Gris</span>
+                    <button className="ml-2 text-blue-500 hover:text-blue-700">×</button>
+                    </div>
+                    <button className="text-xs text-blue-500 hover:text-blue-700 px-2 py-1 rounded border border-blue-200 hover:border-blue-300">
+                    + Ajouter une association
+                    </button>
                 </div>
-              </div>
-  
-              <div className="bg-gray-50 p-3 rounded">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h3 className="font-medium">Version Blanche</h3>
-                    <p className="text-sm text-gray-600">
-                      Utilisé sur : Creator (Noir), Urban (Marine)
-                    </p>
-                  </div>
-                  <div className="w-16 h-16 bg-gray-200 rounded">
-                    {/* Preview de l'image */}
-                  </div>
                 </div>
-              </div>
+            </div>
+
+            {/* Répéter pour autres variantes... */}
             </div>
   
             {/* Actions */}
