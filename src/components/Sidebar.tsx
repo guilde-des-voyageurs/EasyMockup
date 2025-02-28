@@ -18,12 +18,7 @@ export default function Sidebar() {
       href: '/modeles',
       label: 'Modèles',
       icon: '👕'
-    },
-    {
-      href: '/motifs',
-      label: 'Motifs',
-      icon: '🎨'
-    },
+    }, 
     {
       href: '/fichiers',
       label: 'Fichiers',
