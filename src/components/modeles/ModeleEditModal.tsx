@@ -11,6 +11,12 @@ interface TempCouleur extends Couleur {
   tempFile?: File;
 }
 
+interface EditingCouleur {
+  id: string;
+  nom: string;
+  imageUrl: string;
+}
+
 export default function ModeleEditModal({
   isOpen,
   onClose,
@@ -29,6 +35,7 @@ export default function ModeleEditModal({
   const [showAddColor, setShowAddColor] = useState(false);
   const [newColorName, setNewColorName] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [editingCouleur, setEditingCouleur] = useState<EditingCouleur | null>(null);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) {
@@ -51,9 +58,10 @@ export default function ModeleEditModal({
 
       let modeleId = modeleInitial?.id;
       if (!modeleId) {
+        // 1. Créer le nouveau modèle
         modeleId = await modelesService.createModele(nom);
         
-        // Ajouter toutes les couleurs pour un nouveau modèle
+        // 2. Ajouter toutes les couleurs pour un nouveau modèle
         for (const couleur of couleurs) {
           if (couleur.tempFile) {
             await modelesService.addCouleur(
@@ -88,6 +96,7 @@ export default function ModeleEditModal({
       setError(null);
 
       if (modeleInitial?.id) {
+        // Pour un modèle existant, on upload directement
         const couleurId = await modelesService.addCouleur(
           modeleInitial.id,
           newColorName,
@@ -96,7 +105,7 @@ export default function ModeleEditModal({
 
         const { data: { publicUrl } } = supabase.storage
           .from('bases-textiles')
-          .getPublicUrl(selectedFile.name);
+          .getPublicUrl(`${Date.now()}-${selectedFile.name}`);
 
         setCouleurs([
           ...couleurs,
@@ -104,7 +113,7 @@ export default function ModeleEditModal({
         ]);
       } else {
         // Pour un nouveau modèle, on stocke temporairement
-        const newCouleur = { 
+        const newCouleur: TempCouleur = {
           id: generateTempId('couleur'),
           nom: newColorName,
           imageUrl: URL.createObjectURL(selectedFile),
@@ -119,6 +128,64 @@ export default function ModeleEditModal({
       setShowAddColor(false);
     } catch (err) {
       console.error('Error adding color:', err);
+      setError(err instanceof Error ? err.message : 'Une erreur est survenue');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const supprimerCouleur = async (couleurId: string) => {
+    if (!modeleInitial?.id) {
+      // Pour un nouveau modèle, supprimer simplement du state
+      setCouleurs(couleurs.filter(c => c.id !== couleurId));
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      await modelesService.deleteCouleur(couleurId);
+      setCouleurs(couleurs.filter(c => c.id !== couleurId));
+    } catch (err) {
+      console.error('Error deleting color:', err);
+      setError(err instanceof Error ? err.message : 'Une erreur est survenue');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const modifierCouleur = async () => {
+    if (!editingCouleur) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      await modelesService.updateCouleur(
+        editingCouleur.id,
+        editingCouleur.nom,
+        selectedFile || undefined
+      );
+
+      // Mettre à jour le state local
+      setCouleurs(couleurs.map(c => 
+        c.id === editingCouleur.id
+          ? {
+              ...c,
+              nom: editingCouleur.nom,
+              imageUrl: selectedFile 
+                ? URL.createObjectURL(selectedFile)
+                : c.imageUrl
+            }
+          : c
+      ));
+
+      // Réinitialiser le formulaire
+      setEditingCouleur(null);
+      setSelectedFile(null);
+    } catch (err) {
+      console.error('Error updating color:', err);
       setError(err instanceof Error ? err.message : 'Une erreur est survenue');
     } finally {
       setLoading(false);
@@ -168,27 +235,109 @@ export default function ModeleEditModal({
           <div className="space-y-3">
             {couleurs.map(couleur => (
               <div key={couleur.id} className="bg-gray-50 p-4 rounded">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h4 className="font-medium">{couleur.nom}</h4>
-                    <p className="text-sm text-gray-600">Couleur</p>
+                {editingCouleur?.id === couleur.id ? (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Nom
+                      </label>
+                      <input
+                        type="text"
+                        value={editingCouleur.nom}
+                        onChange={(e) => setEditingCouleur({
+                          ...editingCouleur,
+                          nom: e.target.value
+                        })}
+                        className="w-full border rounded-md py-2 px-3"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Image
+                      </label>
+                      <div
+                        {...getRootProps()}
+                        className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer
+                          ${isDragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300'}`}
+                      >
+                        <input {...getInputProps()} />
+                        {selectedFile ? (
+                          <div>
+                            <p className="text-sm text-gray-600">{selectedFile.name}</p>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedFile(null);
+                              }}
+                              className="text-red-500 text-sm mt-2"
+                            >
+                              Supprimer
+                            </button>
+                          </div>
+                        ) : (
+                          <p className="text-gray-500">
+                            {isDragActive ? 
+                              'Déposez l\'image ici...' : 
+                              'Cliquez ou déposez une image ici (optionnel)'
+                            }
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-2">
+                      <button
+                        onClick={() => {
+                          setEditingCouleur(null);
+                          setSelectedFile(null);
+                        }}
+                        className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800"
+                      >
+                        Annuler
+                      </button>
+                      <button
+                        onClick={modifierCouleur}
+                        className="px-3 py-2 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
+                        disabled={loading}
+                      >
+                        {loading ? 'Modification...' : 'Modifier'}
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <img 
-                      src={couleur.imageUrl}
-                      alt={couleur.nom}
-                      className="w-12 h-12 object-cover rounded"
-                    />
-                    <button
-                      onClick={() => {
-                        setCouleurs(couleurs.filter(c => c.id !== couleur.id));
-                      }}
-                      className="text-red-500 hover:text-red-600"
-                    >
-                      Supprimer
-                    </button>
+                ) : (
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h4 className="font-medium">{couleur.nom}</h4>
+                      <p className="text-sm text-gray-600">Couleur</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <img 
+                        src={couleur.imageUrl}
+                        alt={couleur.nom}
+                        className="w-12 h-12 object-cover rounded"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setEditingCouleur({
+                            id: couleur.id,
+                            nom: couleur.nom,
+                            imageUrl: couleur.imageUrl
+                          })}
+                          className="text-blue-500 hover:text-blue-600"
+                        >
+                          Modifier
+                        </button>
+                        <button
+                          onClick={() => supprimerCouleur(couleur.id)}
+                          className="text-red-500 hover:text-red-600"
+                        >
+                          Supprimer
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             ))}
           </div>

@@ -134,12 +134,96 @@ export const modelesService = {
 
   // Supprimer une couleur
   async deleteCouleur(couleurId: string): Promise<void> {
-    const { error } = await supabase
-      .from('couleurs')
-      .delete()
-      .eq('id', couleurId);
+    try {
+      // 1. Récupérer l'URL de l'image
+      const { data: couleur, error: selectError } = await supabase
+        .from('couleurs')
+        .select('image_url')
+        .eq('id', couleurId)
+        .single();
 
-    if (error) throw error;
+      if (selectError) throw selectError;
+
+      // 2. Extraire le nom du fichier de l'URL
+      if (couleur?.image_url) {
+        const fileName = couleur.image_url.split('/').pop();
+        if (fileName) {
+          // 3. Supprimer l'image du bucket
+          const { error: deleteStorageError } = await supabase.storage
+            .from('bases-textiles')
+            .remove([fileName]);
+
+          if (deleteStorageError) {
+            console.error('Error deleting image:', deleteStorageError);
+          }
+        }
+      }
+
+      // 4. Supprimer l'entrée de la base de données
+      const { error: deleteError } = await supabase
+        .from('couleurs')
+        .delete()
+        .eq('id', couleurId);
+
+      if (deleteError) throw deleteError;
+    } catch (error) {
+      console.error('Error in deleteCouleur:', error);
+      throw error;
+    }
+  },
+
+  async updateCouleur(
+    couleurId: string, 
+    nom: string, 
+    imageFile?: File
+  ): Promise<void> {
+    try {
+      const updateData: { nom: string; image_url?: string } = { nom };
+
+      if (imageFile) {
+        // 1. Upload de la nouvelle image
+        const fileName = `${Date.now()}-${imageFile.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from('bases-textiles')
+          .upload(fileName, imageFile);
+
+        if (uploadError) throw uploadError;
+
+        // 2. Obtenir l'URL publique
+        const { data: { publicUrl } } = supabase.storage
+          .from('bases-textiles')
+          .getPublicUrl(fileName);
+
+        updateData.image_url = publicUrl;
+
+        // 3. Supprimer l'ancienne image
+        const { data: oldCouleur } = await supabase
+          .from('couleurs')
+          .select('image_url')
+          .eq('id', couleurId)
+          .single();
+
+        if (oldCouleur?.image_url) {
+          const oldFileName = oldCouleur.image_url.split('/').pop();
+          if (oldFileName) {
+            await supabase.storage
+              .from('bases-textiles')
+              .remove([oldFileName]);
+          }
+        }
+      }
+
+      // 4. Mettre à jour la base de données
+      const { error } = await supabase
+        .from('couleurs')
+        .update(updateData)
+        .eq('id', couleurId);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error in updateCouleur:', error);
+      throw error;
+    }
   },
 
   // Ajouter un élément superposable
