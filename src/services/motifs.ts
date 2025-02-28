@@ -121,5 +121,58 @@ async addVariante(motifId: string, nom: string, imageFile: File): Promise<string
       });
 
     if (error) throw error;
-  }
+  },
+
+  // Supprimer une variante
+  async deleteVariante(varianteId: string): Promise<void> {
+    const { data: variante } = await supabase
+      .from('variantes')
+      .select('image_url')
+      .eq('id', varianteId)
+      .single();
+
+    if (variante?.image_url) {
+      const fileName = variante.image_url.split('/').pop();
+      await supabase.storage
+        .from('variantes-images')
+        .remove([fileName]);
+    }
+
+    const { error } = await supabase
+      .from('variantes')
+      .delete()
+      .eq('id', varianteId);
+
+    if (error) throw error;
+  },
+
+  // Supprimer un motif et toutes ses variantes
+  async deleteMotif(motifId: string): Promise<void> {
+    // 1. Récupérer toutes les variantes pour supprimer leurs images
+    const { data: variantes } = await supabase
+      .from('variantes')
+      .select('image_url')
+      .eq('motif_id', motifId);
+
+    // 2. Supprimer les images du storage
+    if (variantes) {
+      const fileNames = variantes
+        .filter(v => v.image_url)
+        .map(v => v.image_url.split('/').pop());
+
+      if (fileNames.length > 0) {
+        await supabase.storage
+          .from('variantes-images')
+          .remove(fileNames);
+      }
+    }
+
+    // 3. Supprimer le motif (les variantes seront supprimées en cascade)
+    const { error } = await supabase
+      .from('motifs')
+      .delete()
+      .eq('id', motifId);
+
+    if (error) throw error;
+  },
 };

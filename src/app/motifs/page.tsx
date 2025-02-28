@@ -10,6 +10,7 @@ export default function MotifsPage() {
   const [motifs, setMotifs] = useState<Motif[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [suppressionEnCours, setSuppressionEnCours] = useState(false);
 
   const chargerMotifs = async () => {
     try {
@@ -21,6 +22,38 @@ export default function MotifsPage() {
       setError(err instanceof Error ? err.message : 'Erreur lors du chargement des motifs');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const supprimerMotif = async (motifId: string) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer ce motif et toutes ses variantes ?')) {
+      return;
+    }
+
+    try {
+      setSuppressionEnCours(true);
+      await motifsService.deleteMotif(motifId);
+      await chargerMotifs();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur lors de la suppression du motif');
+    } finally {
+      setSuppressionEnCours(false);
+    }
+  };
+
+  const supprimerVariante = async (varianteId: string) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cette variante ?')) {
+      return;
+    }
+
+    try {
+      setSuppressionEnCours(true);
+      await motifsService.deleteVariante(varianteId);
+      await chargerMotifs();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur lors de la suppression de la variante');
+    } finally {
+      setSuppressionEnCours(false);
     }
   };
 
@@ -60,13 +93,20 @@ export default function MotifsPage() {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Motifs</h1>
-        <button 
+        <button
           onClick={ouvrirNouveauMotif}
           className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+          disabled={suppressionEnCours}
         >
           Nouveau Motif
         </button>
       </div>
+
+      {error && (
+        <div className="bg-red-50 text-red-600 p-4 rounded-lg mb-6">
+          {error}
+        </div>
+      )}
 
       {/* Liste des motifs */}
       <div className="grid grid-cols-1 gap-6">
@@ -77,12 +117,22 @@ export default function MotifsPage() {
                 <h2 className="text-xl font-semibold">{motif.nom}</h2>
                 <p className="text-gray-600">{motif.variantes.length} variantes</p>
               </div>
-              <button 
-                onClick={() => ouvrirEditionMotif(motif)}
-                className="text-blue-500 hover:text-blue-600"
-              >
-                Éditer
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => ouvrirEditionMotif(motif)}
+                  className="text-blue-500 hover:text-blue-600"
+                  disabled={suppressionEnCours}
+                >
+                  Éditer
+                </button>
+                <button
+                  onClick={() => supprimerMotif(motif.id)}
+                  className="text-red-500 hover:text-red-600"
+                  disabled={suppressionEnCours}
+                >
+                  Supprimer
+                </button>
+              </div>
             </div>
 
             {/* Variantes */}
@@ -93,14 +143,23 @@ export default function MotifsPage() {
                     <div>
                       <h3 className="font-medium">{variante.nom}</h3>
                     </div>
-                    <div className="w-16 h-16 bg-gray-200 rounded">
-                      {variante.imageUrl && (
-                        <img 
-                          src={variante.imageUrl} 
-                          alt={variante.nom}
-                          className="w-full h-full object-cover rounded"
-                        />
-                      )}
+                    <div className="flex items-center gap-4">
+                      <div className="w-16 h-16 bg-gray-200 rounded">
+                        {variante.imageUrl && (
+                          <img
+                            src={variante.imageUrl}
+                            alt={variante.nom}
+                            className="w-full h-full object-cover rounded"
+                          />
+                        )}
+                      </div>
+                      <button
+                        onClick={() => supprimerVariante(variante.id)}
+                        className="text-red-500 hover:text-red-600"
+                        disabled={suppressionEnCours}
+                      >
+                        Supprimer
+                      </button>
                     </div>
                   </div>
 
