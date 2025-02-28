@@ -49,6 +49,21 @@ export default function MotifEditModal({ isOpen, onClose, onSuccess, motifInitia
   };
 
   const ajouterAssociation = (varianteId: string, modele: string, couleur: string) => {
+    // Trouver la variante actuelle
+    const variante = variantes.find(v => v.id === varianteId);
+    if (!variante) return;
+
+    // Vérifier si l'association existe déjà
+    const associationExiste = variante.associations.some(
+      assoc => assoc.modele === modele && assoc.couleur === couleur
+    );
+
+    if (associationExiste) {
+      setError(`L'association "${modele} - ${couleur}" existe déjà pour cette variante`);
+      return;
+    }
+
+    // Si l'association n'existe pas, on l'ajoute
     const newVariantes = variantes.map(v =>
       v.id === varianteId
         ? {
@@ -62,6 +77,7 @@ export default function MotifEditModal({ isOpen, onClose, onSuccess, motifInitia
     );
     setVariantes(newVariantes);
     setVarianteEnEdition(null);
+    setError(null); // Effacer les erreurs précédentes
   };
 
   const handleSubmit = async () => {
@@ -210,7 +226,11 @@ export default function MotifEditModal({ isOpen, onClose, onSuccess, motifInitia
                       {varianteEnEdition === variante.id && (
                         <AssociationSelector
                           onAdd={(modele, couleur) => ajouterAssociation(variante.id, modele, couleur)}
-                          onCancel={() => setVarianteEnEdition(null)}
+                          onCancel={() => {
+                            setVarianteEnEdition(null);
+                            setError(null);
+                          }}
+                          error={error}
                         />
                       )}
                     </div>

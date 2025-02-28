@@ -5,6 +5,7 @@ import { useState } from 'react';
 interface AssociationSelectorProps {
   onAdd: (modele: string, couleur: string) => void;
   onCancel: () => void;
+  error?: string | null;
 }
 
 // TODO: Ces données devraient venir de la page Modèles
@@ -19,7 +20,7 @@ const MODELES = [
   }
 ];
 
-export default function AssociationSelector({ onAdd, onCancel }: AssociationSelectorProps) {
+export default function AssociationSelector({ onAdd, onCancel, error }: AssociationSelectorProps) {
   const [modeleSelectionne, setModeleSelectionne] = useState('');
   const [couleurSelectionnee, setCouleurSelectionnee] = useState('');
 
@@ -29,6 +30,12 @@ export default function AssociationSelector({ onAdd, onCancel }: AssociationSele
     <div className="bg-white rounded-lg shadow-lg p-4 absolute z-10 w-64">
       <h3 className="font-medium mb-4">Nouvelle Association</h3>
       
+      {error && (
+        <div className="mb-3 text-sm text-red-600 bg-red-50 p-2 rounded">
+          {error}
+        </div>
+      )}
+
       {/* Sélection du modèle */}
       <div className="mb-3">
         <label className="block text-sm font-medium text-gray-700 mb-1">
