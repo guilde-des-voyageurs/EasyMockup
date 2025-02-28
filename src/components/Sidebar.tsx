@@ -10,6 +10,11 @@ export default function Sidebar() {
   // Définition de nos liens avec leurs propriétés
   const links = [
     {
+      href: '/',
+      label: 'Génération',
+      icon: '⚡'
+    },
+    {
       href: '/modeles',
       label: 'Modèles',
       icon: '🎨'
@@ -18,11 +23,6 @@ export default function Sidebar() {
       href: '/fichiers',
       label: 'Fichiers',
       icon: '📁'
-    },
-    {
-      href: '/',
-      label: 'Génération',
-      icon: '⚡'
     }
   ];
 
