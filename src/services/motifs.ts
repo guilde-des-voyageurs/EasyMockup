@@ -123,6 +123,16 @@ async addVariante(motifId: string, nom: string, imageFile: File): Promise<string
     if (error) throw error;
   },
 
+  // Mettre à jour un motif
+  async updateMotif(motifId: string, nom: string): Promise<void> {
+    const { error } = await supabase
+      .from('motifs')
+      .update({ nom })
+      .eq('id', motifId);
+
+    if (error) throw error;
+  },
+
   // Supprimer une variante
   async deleteVariante(varianteId: string): Promise<void> {
     const { data: variante } = await supabase

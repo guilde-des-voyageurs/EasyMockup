@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Modal from '../Modal';
 import ImageUpload from '../ImageUpload';
 import AssociationSelector from './AssociationSelector';
@@ -19,6 +19,13 @@ export default function MotifEditModal({ isOpen, onClose, onSuccess, motifInitia
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [varianteEnEdition, setVarianteEnEdition] = useState<string | null>(null);
+
+  // Réinitialiser les états quand motifInitial change
+  useEffect(() => {
+    setNom(motifInitial?.nom || '');
+    setVariantes(motifInitial?.variantes || []);
+    setError(null);
+  }, [motifInitial]);
 
   const ajouterVariante = () => {
     const nouvelleVariante: Variante = {
@@ -66,6 +73,8 @@ export default function MotifEditModal({ isOpen, onClose, onSuccess, motifInitia
       let motifId = motifInitial?.id;
       if (!motifId) {
         motifId = await motifsService.createMotif(nom);
+      } else {
+        await motifsService.updateMotif(motifId, nom);
       }
 
       // 2. Pour chaque variante
